@@ -68,8 +68,8 @@ public class TextAssociator {
 	/* Creates a new TextAssociator without any associations 
 	 */
 	public TextAssociator() {
-		this.table = new WordInfoSeparateChain[10];
-		this.size = 10;
+		this.table = new WordInfoSeparateChain[11];
+		this.size = 0;
 	}
 
 	/* Adds a word with no associations to the TextAssociator 
@@ -77,25 +77,20 @@ public class TextAssociator {
 	 * Returns True if this word is successfully added
 	 */
 	public boolean addNewWord(String word) {
-		int hash = Math.abs(word.hashCode() % this.size);
-		if ((this.size + 1) >= 0.70 * this.table.length) {
-			WordInfoSeparateChain[] newTable = new WordInfoSeparateChain[this.table.length * 2];
-			for (int i = 0; i < this.size; i++) {
-				newTable[i] = this.table[i];
-			}
-			this.table = newTable;
-		}
+		int hash = Math.abs(word.hashCode() % table.length);
 		if (this.table[hash] == null) {
-			this.table[hash] = new WordInfoSeparateChain();
+			this.table[hash] = new WordInfoSeparateChain(); // null is pointing to a WISC
+			WordInfo newWord = new WordInfo(word);
+			return this.table[hash].add(newWord);
 		} else {
 			for (WordInfo wiWord : this.table[hash].getElements()) {
 				if (wiWord.getWord().equals(word)) {
 					return false;
-				}
+				} 	
 			}
+			WordInfo newWord = new WordInfo(word);
+			return this.table[hash].add(newWord);
 		}
-		WordInfo newWord = new WordInfo(word);
-		return this.table[hash].add(newWord);
 	}
 
 	/* Adds an association between the given words. Returns true if association correctly added, 
@@ -103,7 +98,7 @@ public class TextAssociator {
 	 * the association between the two words already exists
 	 */
 	public boolean addAssociation(String word, String association) {
-		int hash = Math.abs(word.hashCode() % this.size);
+		int hash = Math.abs(word.hashCode() % this.table.length);
 		for (WordInfo wiWord : this.table[hash].getElements()) {
 			if (word.equals(wiWord.getWord())) {
 				return wiWord.addAssociation(association);
@@ -117,7 +112,7 @@ public class TextAssociator {
 	 * Note that only a source word can be removed by this method, not an association.
 	 */
 	public boolean remove(String word) {
-		int hash = Math.abs(word.hashCode() % this.size);
+		int hash = Math.abs(word.hashCode() % this.table.length); //this.size
 		for (WordInfo wiWord : this.table[hash].getElements()) {
 			if (wiWord.getWord().equals(word)) {
 				return this.table[hash].remove(wiWord);
@@ -129,15 +124,37 @@ public class TextAssociator {
 	/* Returns a set of all the words associated with the given String  
 	 * Returns null if the given String does not exist in the TextAssociator
 	 */
-	public Set<String> getAssociations(String word) {
-		int hash = Math.abs(word.hashCode() % this.size);
-		for (WordInfo wiWord : this.table[hash].getElements()) {
-			if (word.equals(wiWord.getWord())) {
-				return wiWord.getAssociations();
+	public Set<String> getAssociations(String word) {		
+		int hash = Math.abs(word.hashCode() % this.table.length);
+		if (this.table[hash]!= null) {
+			List<WordInfo> spList = this.table[hash].getElements();
+			for (WordInfo wiWord : spList) { // NULL POINTER EXCEPTION
+				if (wiWord.getWord().equals(word)) {
+					return wiWord.getAssociations();
+				}
 			}
 		}
 		return null;
 	}
+
+	private void resize() {
+		if ((this.size / this.table.length) >= 0.70) {
+			WordInfoSeparateChain[] newTable = new WordInfoSeparateChain[this.table.length * 2];
+			for (WordInfo wiWord : this.table[hash].getElements()) {
+				String getWord = wiWord.getWord();
+				int rehash = Math.abs(getWord.hashCode() % newTable.length);
+				newTable[rehash].add(wiWord);
+			}
+		}
+	}
+
+	//for each bucket
+	// grab WISC
+	// for each WI
+	// grab the word (wordInfo.getWord())
+	// int newBucket = rehash(word)
+	// add word info to WISC
+
 
 	/* Prints the current associations between words being stored
 	 * to System.out
